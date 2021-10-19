@@ -1,0 +1,30 @@
+android_app {
+    name: "AlertSlider",
+    srcs: ["src/**/*.kt"],
+    resource_dirs: ["res"],
+    certificate: "platform",
+    platform_apis: true,
+    system_ext_specific: true,
+    defaults: [
+        "SettingsLibDefaults",
+    ],
+    static_libs: [
+        "androidx.annotation_annotation",
+        "androidx.fragment_fragment-ktx",
+        "androidx.preference_preference",
+        "vendor_support",
+    ],
+    optimize: {
+        enabled: false,
+    },
+    required: [
+        "tri-state-key-calibrate",
+    ],
+}
+
+sh_binary {
+    name: "tri-state-key-calibrate",
+    init_rc: ["tri-state-key-calibrate.rc"],
+    src: "tri-state-key-calibrate.sh",
+    vendor: true,
+}
