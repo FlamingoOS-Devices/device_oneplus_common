@@ -39,6 +39,8 @@ import android.util.Log
 import com.android.internal.os.AlertSlider.Mode
 import com.android.internal.os.AlertSlider.Position
 
+import java.io.File
+
 class KeyHandler : Service() {
 
     private val audioManager by lazy { getSystemService(AudioManager::class.java) }
@@ -86,6 +88,14 @@ class KeyHandler : Service() {
                 }
             }
         }
+
+        fun restoreState() {
+            File(SYSFS_EXTCON).walk().firstOrNull {
+                it.isDirectory && it.name.matches(Regex("extcon\\d+"))
+            }?.let {
+                onUEvent(UEvent("STATE=${File(it, "state").readText()}"))
+            }
+        }
     }
 
     private var wasMuted = false
@@ -98,6 +108,7 @@ class KeyHandler : Service() {
         )
         alertSliderEventObserver.startObserving("tri-state-key")
         alertSliderEventObserver.startObserving("tri_state_key")
+        alertSliderEventObserver.restoreState()
     }
 
     override fun onBind(intent: Intent?): IBinder? = null
@@ -195,5 +206,8 @@ class KeyHandler : Service() {
                 VibrationEffect.createPredefined(VibrationEffect.EFFECT_DOUBLE_CLICK)
 
         private const val MUTE_MEDIA_WITH_SILENT = "config_mute_media"
+        
+        // Paths
+        private const val SYSFS_EXTCON = "/sys/devices/platform/soc/soc:tri_state_key/extcon"
     }
 }
