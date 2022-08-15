@@ -12,11 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Overlays
-PRODUCT_PACKAGES += \
-    OnePlusFrameworksOverlay
-
 # tri-state key
 PRODUCT_PACKAGES += \
-    tri-state-key_daemon \
-    TriStateHandler
+    tri-state-key_daemon
