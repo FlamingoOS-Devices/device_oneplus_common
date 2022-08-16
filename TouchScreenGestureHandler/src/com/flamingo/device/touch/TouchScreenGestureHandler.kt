@@ -58,17 +58,6 @@ private const val DEVICE_KEY_MANAGER = "device_key_manager"
 
 private val TAG = TouchScreenGestureHandler::class.simpleName!!
 private val Actions = intArrayOf(KeyEvent.ACTION_UP)
-private val ScanCodes = intArrayOf(
-    251, // Two fingers down swipe
-    252, // Down arrow
-    253, // Left arrow
-    254, // Right arrow
-    247, // Letter M
-    250, // Letter O
-    248, // Letter S
-    246, // Letter W
-    255 // Single Tap
-)
 
 class TouchScreenGestureHandler : LifecycleService() {
 
@@ -100,7 +89,7 @@ class TouchScreenGestureHandler : LifecycleService() {
             lhm.touchscreenGestures.forEach { gesture: TouchscreenGesture ->
                 val key = getResName(gesture.name)
                 settingMap[gesture.keycode] = key
-                val action = getSavedAction(this@TouchScreenGestureHandler, key)
+                val action = getSavedAction(this@TouchScreenGestureHandler, key, defaultGestureValues[gesture.keycode]?:GestureAction.NONE)
                 lhm.setTouchscreenGestureEnabled(gesture, action != GestureAction.NONE)
             }
             registerKeyHandler()
@@ -308,21 +297,4 @@ class TouchScreenGestureHandler : LifecycleService() {
 
         private val HEAVY_CLICK_EFFECT = VibrationEffect.createPredefined(VibrationEffect.EFFECT_HEAVY_CLICK)
     }
-}
-
-enum class GestureAction {
-    NONE,
-    FLASHLIGHT,
-    CAMERA,
-    BROWSER,
-    DIALER,
-    EMAIL,
-    MESSAGES,
-    PLAY_PAUSE_MUSIC,
-    PREVIOUS_TRACK,
-    NEXT_TRACK,
-    VOLUME_DOWN,
-    VOLUME_UP,
-    WAKEUP,
-    AMBIENT_DISPLAY
 }

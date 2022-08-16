@@ -62,14 +62,13 @@ class SettingsActivity : CollapsingToolbarBaseActivity() {
                 }
                 val packageName = requireContext().packageName
                 val gestureEntryValues = GestureAction.values().map { it.toString() }.toTypedArray()
-                val defaultValue = GestureAction.NONE.toString()
                 lhm.touchscreenGestures.forEach { gesture: TouchscreenGesture ->
                     val listPreference = SystemSettingListPreference(requireContext()).apply {
                         key = getResName(gesture.name)
                         setEntries(R.array.touchscreen_gesture_action_entries)
                         entryValues = gestureEntryValues
                         setDialogTitle(R.string.touchscreen_gesture_action_dialog_title)
-                        setDefaultValue(defaultValue)
+                        setDefaultValue((defaultGestureValues[gesture.keycode]?:GestureAction.NONE).toString())
                         summaryProvider = SimpleSummaryProvider.getInstance()
                     }.also {
                         it.setOnPreferenceChangeListener { _, newValue ->
