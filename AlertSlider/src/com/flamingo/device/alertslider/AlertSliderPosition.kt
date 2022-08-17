@@ -16,14 +16,14 @@
 
 package com.flamingo.device.alertslider
 
-import android.provider.Settings.System.ALERTSLIDER_MODE_POSITION_BOTTOM
-import android.provider.Settings.System.ALERTSLIDER_MODE_POSITION_MIDDLE
-import android.provider.Settings.System.ALERTSLIDER_MODE_POSITION_TOP
-
 import androidx.annotation.StringRes
 
 import com.android.internal.os.AlertSlider.Mode
 import com.android.internal.os.AlertSlider.Position
+
+private const val KEY_BOTTOM_POSITION_MODE = "alertslider_bottom_position_mode"
+private const val KEY_MIDDLE_POSITION_MODE = "alertslider_middle_position_mode"
+private const val KEY_TOP_POSITION_MODE = "alertslider_top_position_mode"
 
 sealed class AlertSliderPosition(
     @StringRes val title: Int,
@@ -33,19 +33,19 @@ sealed class AlertSliderPosition(
 ) {
     object Bottom : AlertSliderPosition(
         R.string.alert_slider_bottom_title,
-        ALERTSLIDER_MODE_POSITION_BOTTOM,
+        KEY_BOTTOM_POSITION_MODE,
         Mode.NORMAL,
         Position.BOTTOM
     )
     object Middle : AlertSliderPosition(
         R.string.alert_slider_middle_title,
-        ALERTSLIDER_MODE_POSITION_MIDDLE,
+        KEY_MIDDLE_POSITION_MODE,
         Mode.VIBRATE,
         Position.MIDDLE
     )
     object Top : AlertSliderPosition(
         R.string.alert_slider_top_title,
-        ALERTSLIDER_MODE_POSITION_TOP,
+        KEY_TOP_POSITION_MODE,
         Mode.SILENT,
         Position.TOP
     )
