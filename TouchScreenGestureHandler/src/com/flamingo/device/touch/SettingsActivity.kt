@@ -27,8 +27,6 @@ import com.android.internal.lineage.hardware.LineageHardwareManager
 import com.android.internal.lineage.hardware.LineageHardwareManager.FEATURE_TOUCHSCREEN_GESTURES
 import com.android.internal.lineage.hardware.TouchscreenGesture
 import com.android.settingslib.collapsingtoolbar.CollapsingToolbarBaseActivity
-import com.flamingo.device.touch.R
-import com.flamingo.device.touch.getResName
 import com.flamingo.support.preference.SystemSettingListPreference
 
 import kotlinx.coroutines.Dispatchers
@@ -60,26 +58,25 @@ class SettingsActivity : CollapsingToolbarBaseActivity() {
                 withContext(Dispatchers.Main) {
                     setPreferencesFromResource(R.xml.fragment_settings, rootKey)
                 }
-                val packageName = requireContext().packageName
-                val gestureEntryValues = GestureAction.values().map { it.toString() }.toTypedArray()
+                val gestureEntries = Action.values().map { resources.getString(it.title) }.toTypedArray()
+                val gestureEntryValues = Action.values().map { it.toString() }.toTypedArray()
                 lhm.touchscreenGestures.forEach { gesture: TouchscreenGesture ->
                     val listPreference = SystemSettingListPreference(requireContext()).apply {
-                        key = getResName(gesture.name)
-                        setEntries(R.array.touchscreen_gesture_action_entries)
+                        key = gesture.settingKey
+                        title = ScanCodeTitleMap[gesture.keycode]?.let { resources.getString(it) } ?: gesture.name
+                        entries = gestureEntries
                         entryValues = gestureEntryValues
                         setDialogTitle(R.string.touchscreen_gesture_action_dialog_title)
-                        setDefaultValue((defaultGestureValues[gesture.keycode]?:GestureAction.NONE).toString())
+                        setDefaultValue(getDefaultActionForScanCode(gesture.keycode).toString())
                         summaryProvider = SimpleSummaryProvider.getInstance()
                     }.also {
                         it.setOnPreferenceChangeListener { _, newValue ->
-                            val action = GestureAction.valueOf(newValue as String)
+                            val action = Action.valueOf(newValue as String)
                             lifecycleScope.launch(Dispatchers.Default) {
-                                lhm.setTouchscreenGestureEnabled(gesture, action != GestureAction.NONE)
+                                lhm.setTouchscreenGestureEnabled(gesture, action != Action.NONE)
                             }
                             return@setOnPreferenceChangeListener true
                         }
-                        val resId = resources.getIdentifier(it.key, "string", packageName)
-                        it.title = if (resId != 0) resources.getString(resId) else gesture.name
                     }
                     withContext(Dispatchers.Main) {
                         preferenceScreen.addPreference(listPreference)

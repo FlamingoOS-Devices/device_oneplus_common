@@ -25,7 +25,6 @@ import android.provider.Settings
 import com.android.internal.lineage.hardware.LineageHardwareManager
 import com.android.internal.lineage.hardware.LineageHardwareManager.FEATURE_TOUCHSCREEN_GESTURES
 import com.android.internal.lineage.hardware.TouchscreenGesture
-import com.flamingo.device.touch.getResName
 
 class BootCompletedReceiver : BroadcastReceiver() {
 

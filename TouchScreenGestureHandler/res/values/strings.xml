@@ -23,10 +23,9 @@
     <!-- Screen off Gestures : Input -->
     <string name="touchscreen_gesture_single_tap_title">Single tap</string>
     <string name="touchscreen_gesture_two_fingers_down_swipe_title">Swipe down with two fingers</string>
-    <string name="touchscreen_gesture_up_arrow_title">Draw a \"Λ\"</string>
     <string name="touchscreen_gesture_down_arrow_title">Draw a \"V\"</string>
-    <string name="touchscreen_gesture_right_arrow_title">Draw a \"&lt;\"</string>
-    <string name="touchscreen_gesture_left_arrow_title">Draw a \"&gt;\"</string>
+    <string name="touchscreen_gesture_right_arrow_title">Draw a \"&gt;\"</string>
+    <string name="touchscreen_gesture_left_arrow_title">Draw a \"&lt;\"</string>
     <string name="touchscreen_gesture_letter_o_title">Draw the letter \"O\"</string>
     <string name="touchscreen_gesture_letter_m_title">Draw the letter \"M\"</string>
     <string name="touchscreen_gesture_letter_s_title">Draw the letter \"S\"</string>

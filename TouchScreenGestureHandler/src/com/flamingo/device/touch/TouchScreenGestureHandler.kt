@@ -32,7 +32,6 @@ import android.os.UserHandle
 import android.os.VibrationEffect
 import android.os.Vibrator
 import android.provider.Settings
-import android.provider.Settings.System.TOUCHSCREEN_GESTURE_HAPTIC_FEEDBACK
 import android.util.Log
 import android.util.SparseArray
 import android.view.KeyEvent
@@ -47,7 +46,6 @@ import com.android.internal.lineage.hardware.TouchscreenGesture
 import com.android.internal.os.IDeviceKeyManager
 import com.android.internal.os.IKeyHandler
 import com.android.internal.util.flamingo.FlamingoUtils
-import com.flamingo.device.touch.getResName
 
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.channels.Channel
@@ -66,7 +64,7 @@ class TouchScreenGestureHandler : LifecycleService() {
     private val vibrator by lazy { getSystemService(Vibrator::class.java) }
     private val keyguardManager by lazy { getSystemService(KeyguardManager::class.java) }
 
-    private val settingMap = SparseArray<String>()
+    private val settingKeyMap = SparseArray<String>()
 
     private val gestureWakeLock by lazy {
         powerManager.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, GESTURE_WAKELOCK_TAG)
@@ -87,28 +85,48 @@ class TouchScreenGestureHandler : LifecycleService() {
             val lhm = LineageHardwareManager.getInstance(this@TouchScreenGestureHandler)
             if (!lhm.isSupported(FEATURE_TOUCHSCREEN_GESTURES)) return@launch
             lhm.touchscreenGestures.forEach { gesture: TouchscreenGesture ->
-                val key = getResName(gesture.name)
-                settingMap[gesture.keycode] = key
-                val action = getSavedAction(this@TouchScreenGestureHandler, key, defaultGestureValues[gesture.keycode]?:GestureAction.NONE)
-                lhm.setTouchscreenGestureEnabled(gesture, action != GestureAction.NONE)
+                settingKeyMap[gesture.keycode] = gesture.settingKey
+                val action = getSavedAction(
+                    this@TouchScreenGestureHandler,
+                    gesture.settingKey,
+                    getDefaultActionForScanCode(gesture.keycode)
+                )
+                lhm.setTouchscreenGestureEnabled(gesture, action != Action.NONE)
             }
             registerKeyHandler()
         }
     }
 
-    private suspend fun registerKeyHandler() {
+    private fun getDeviceKeyManager(): IDeviceKeyManager? {
         val service = ServiceManager.getService(DEVICE_KEY_MANAGER) ?: run {
             Log.wtf(TAG, "Device key manager service not found")
-            return
+            return null
         }
+        return IDeviceKeyManager.Stub.asInterface(service)
+    }
+
+    private suspend fun registerKeyHandler() {
         try {
-            IDeviceKeyManager.Stub.asInterface(service)
-                .registerKeyHandler(keyHandler, ScanCodes, Actions)
+            getDeviceKeyManager()?.registerKeyHandler(keyHandler, ScanCodes, Actions)
             handleKeyEvents()
         } catch(e: RemoteException) {
             Log.e(TAG, "Failed to register key handler", e)
             stopSelf()
         }
+    }
+
+    private fun unregisterKeyHandler() {
+        try {
+            getDeviceKeyManager()?.unregisterKeyHandler(keyHandler)
+        } catch(e: RemoteException) {
+            Log.e(TAG, "Failed to register key handler", e)
+        }
+    }
+
+    override fun onDestroy() {
+        eventChannel.close()
+        unregisterKeyHandler()
+        super.onDestroy()
     }
 
     private suspend fun handleKeyEvents() {
@@ -120,12 +138,12 @@ class TouchScreenGestureHandler : LifecycleService() {
     }
 
     private fun handleKeyEvent(keyEvent: KeyEvent) {
-        val key: String = settingMap[keyEvent.scanCode] ?: return
-        if (key == SINGLE_TAP_GESTURE && !keyguardManager.isDeviceLocked()) {
-            // Wakeup the device if not locked
+        if (keyEvent.scanCode == Gesture.SINGLE_TAP.scanCode && !keyguardManager.isDeviceLocked) {
+            // Wake up the device if not locked
             wakeUp()
             return
         }
+        val key: String = settingKeyMap[keyEvent.scanCode] ?: return
         // Handle gestures
         val action = getSavedAction(this, key)
         try {
@@ -140,24 +158,24 @@ class TouchScreenGestureHandler : LifecycleService() {
         }
     }
 
-    private fun performAction(action: GestureAction) {
+    private fun performAction(action: Action) {
         when (action) {
-            GestureAction.NONE -> return
-            GestureAction.CAMERA -> launchCamera()
-            GestureAction.FLASHLIGHT -> toggleFlashlight()
-            GestureAction.BROWSER -> launchBrowser()
-            GestureAction.DIALER -> launchDialer()
-            GestureAction.EMAIL -> launchEmail()
-            GestureAction.MESSAGES -> launchMessages()
-            GestureAction.PLAY_PAUSE_MUSIC -> playPauseMusic()
-            GestureAction.PREVIOUS_TRACK -> previousTrack()
-            GestureAction.NEXT_TRACK -> nextTrack()
-            GestureAction.VOLUME_DOWN -> volumeDown()
-            GestureAction.VOLUME_UP -> volumeUp()
-            GestureAction.WAKEUP -> wakeUp()
-            GestureAction.AMBIENT_DISPLAY -> launchDozePulse()
+            Action.NONE -> return
+            Action.CAMERA -> launchCamera()
+            Action.FLASHLIGHT -> toggleFlashlight()
+            Action.BROWSER -> launchBrowser()
+            Action.DIALER -> launchDialer()
+            Action.EMAIL -> launchEmail()
+            Action.MESSAGES -> launchMessages()
+            Action.PLAY_PAUSE_MUSIC -> playPauseMusic()
+            Action.PREVIOUS_TRACK -> previousTrack()
+            Action.NEXT_TRACK -> nextTrack()
+            Action.VOLUME_DOWN -> volumeDown()
+            Action.VOLUME_UP -> volumeUp()
+            Action.WAKEUP -> wakeUp()
+            Action.AMBIENT_DISPLAY -> launchDozePulse()
         }
-        if (action !=  GestureAction.AMBIENT_DISPLAY) {
+        if (action != Action.AMBIENT_DISPLAY) {
             performHapticFeedback()
         }
     }
@@ -292,8 +310,7 @@ class TouchScreenGestureHandler : LifecycleService() {
         private const val GESTURE_REQUEST = 1
         private const val GESTURE_WAKELOCK_TAG = "$TAG:GestureWakeLock"
 
-        // Single tap gesture action
-        private val SINGLE_TAP_GESTURE = getResName("Single tap")
+        private const val TOUCHSCREEN_GESTURE_HAPTIC_FEEDBACK = "touchscreen_gesture_haptic_feedback"
 
         private val HEAVY_CLICK_EFFECT = VibrationEffect.createPredefined(VibrationEffect.EFFECT_HEAVY_CLICK)
     }
