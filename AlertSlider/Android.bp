@@ -11,6 +11,8 @@ android_app {
     static_libs: [
         "androidx.annotation_annotation",
         "androidx.fragment_fragment-ktx",
+        "androidx.lifecycle_lifecycle-runtime-ktx",
+        "androidx.lifecycle_lifecycle-service",
         "androidx.preference_preference",
         "vendor_support",
     ],

@@ -25,7 +25,6 @@ import android.content.Intent
 import android.content.IntentFilter
 import android.media.AudioManager
 import android.media.AudioSystem
-import android.os.IBinder
 import android.os.UEventObserver
 import android.os.UserHandle
 import android.os.VibrationEffect
@@ -36,12 +35,18 @@ import android.provider.Settings.Global.ZEN_MODE_NO_INTERRUPTIONS
 import android.provider.Settings.Global.ZEN_MODE_OFF
 import android.util.Log
 
+import androidx.lifecycle.LifecycleService
+import androidx.lifecycle.lifecycleScope
+
 import com.android.internal.os.AlertSlider.Mode
 import com.android.internal.os.AlertSlider.Position
 
 import java.io.File
 
-class KeyHandler : Service() {
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+
+class KeyHandler : LifecycleService() {
 
     private val audioManager by lazy { getSystemService(AudioManager::class.java) }
     private val notificationManager by lazy { getSystemService(NotificationManager::class.java) }
@@ -91,9 +96,10 @@ class KeyHandler : Service() {
 
         fun restoreState() {
             File(SYSFS_EXTCON).walk().firstOrNull {
-                it.isDirectory && it.name.matches(Regex("extcon\\d+"))
+                it.isDirectory && it.name.matches("extcon\\d+".toRegex())
             }?.let {
-                onUEvent(UEvent("STATE=${File(it, "state").readText()}"))
+                val state = File(it, "state").readText()
+                onUEvent(UEvent("STATE=$state"))
             }
         }
     }
@@ -108,10 +114,10 @@ class KeyHandler : Service() {
         )
         alertSliderEventObserver.startObserving("tri-state-key")
         alertSliderEventObserver.startObserving("tri_state_key")
-        alertSliderEventObserver.restoreState()
+        lifecycleScope.launch(Dispatchers.IO) {
+            alertSliderEventObserver.restoreState()
+        }
     }
-
-    override fun onBind(intent: Intent?): IBinder? = null
 
     fun handlePosition(sliderPosition: AlertSliderPosition) {
         val savedMode = Settings.System.getStringForUser(
