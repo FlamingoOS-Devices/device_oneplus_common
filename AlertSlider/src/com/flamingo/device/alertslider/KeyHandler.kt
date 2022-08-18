@@ -44,6 +44,7 @@ import com.android.internal.os.AlertSlider.Position
 import java.io.File
 
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.launch
 
 class KeyHandler : LifecycleService() {
@@ -62,44 +63,25 @@ class KeyHandler : LifecycleService() {
         }
     }
 
-    private val alertSliderEventObserver = object : UEventObserver() {
-        private val lock = Any()
+    private val positionChangeChannel = Channel<AlertSliderPosition>(capacity = Channel.CONFLATED)
 
+    private val alertSliderEventObserver = object : UEventObserver() {
         override fun onUEvent(event: UEvent) {
-            synchronized(lock) {
-                event.get("SWITCH_STATE")?.let {
-                    handlePosition(
+            event.get("SWITCH_STATE")?.let {
+                lifecycleScope.launch {
+                    positionChangeChannel.send(
                         when (it.toInt()) {
                             1 -> AlertSliderPosition.Top
                             2 -> AlertSliderPosition.Middle
                             3 -> AlertSliderPosition.Bottom
-                            else -> return
+                            else -> return@launch
                         }
                     )
-                    return
                 }
+            } ?: run {
                 event.get("STATE")?.let {
-                    val none = it.contains("USB=0")
-                    val vibration = it.contains("HOST=0")
-                    val silent = it.contains("null)=0")
-
-                    if (none && !vibration && !silent) {
-                        handlePosition(AlertSliderPosition.Bottom)
-                    } else if (!none && vibration && !silent) {
-                        handlePosition(AlertSliderPosition.Middle)
-                    } else if (!none && !vibration && silent) {
-                        handlePosition(AlertSliderPosition.Top)
-                    }
+                    handleState(it)
                 }
-            }
-        }
-
-        fun restoreState() {
-            File(SYSFS_EXTCON).walk().firstOrNull {
-                it.isDirectory && it.name.matches("extcon\\d+".toRegex())
-            }?.let {
-                val state = File(it, "state").readText()
-                onUEvent(UEvent("STATE=$state"))
             }
         }
     }
@@ -115,7 +97,32 @@ class KeyHandler : LifecycleService() {
         alertSliderEventObserver.startObserving("tri-state-key")
         alertSliderEventObserver.startObserving("tri_state_key")
         lifecycleScope.launch(Dispatchers.IO) {
-            alertSliderEventObserver.restoreState()
+            for (position in positionChangeChannel) {
+                handlePosition(position)
+            }
+        }
+        lifecycleScope.launch(Dispatchers.IO) {
+            File(SYSFS_EXTCON).walk().firstOrNull {
+                it.isDirectory && it.name.matches("extcon\\d+".toRegex())
+            }?.let {
+                handleState(File(it, "state").readText())
+            }
+        }
+    }
+
+    private fun handleState(state: String) {
+        lifecycleScope.launch {
+            val none = state.contains("USB=0")
+            val vibration = state.contains("HOST=0")
+            val silent = state.contains("null)=0")
+            positionChangeChannel.send(
+                when {
+                    none && !vibration && !silent -> AlertSliderPosition.Bottom
+                    vibration && !none && !silent -> AlertSliderPosition.Middle
+                    silent && !none && !vibration -> AlertSliderPosition.Top
+                    else -> return@launch
+                }
+            )
         }
     }
 
