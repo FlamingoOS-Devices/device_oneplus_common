@@ -184,7 +184,7 @@ class TouchScreenGestureHandler : LifecycleService() {
         wakeUp()
         sendBroadcastAsUser(
             Intent(Intent.ACTION_SCREEN_CAMERA_GESTURE),
-            UserHandle.CURRENT,
+            UserHandle.SYSTEM,
             Manifest.permission.STATUS_BAR_SERVICE
         )
     }
@@ -244,7 +244,7 @@ class TouchScreenGestureHandler : LifecycleService() {
             UserHandle.USER_CURRENT
         ) == 1
         if (dozeEnabled) {
-            sendBroadcastAsUser(Intent(PULSE_ACTION), UserHandle.CURRENT)
+            sendBroadcastAsUser(Intent(PULSE_ACTION), UserHandle.SYSTEM)
         }
     }
 
@@ -270,7 +270,7 @@ class TouchScreenGestureHandler : LifecycleService() {
                 Intent.FLAG_ACTIVITY_CLEAR_TOP
         )
         try {
-            startActivityAsUser(intent, null, UserHandle.CURRENT)
+            startActivityAsUser(intent, null, UserHandle.SYSTEM)
             wakeUp()
         } catch (e: ActivityNotFoundException) {
             Log.e(TAG, "Activity not found to launch")
