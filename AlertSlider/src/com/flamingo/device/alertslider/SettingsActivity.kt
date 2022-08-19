@@ -23,8 +23,6 @@ import androidx.fragment.app.commit
 import androidx.preference.ListPreference.SimpleSummaryProvider
 import androidx.preference.PreferenceFragmentCompat
 
-import com.android.internal.os.AlertSlider.Mode
-import com.android.internal.os.AlertSlider.Position
 import com.android.settingslib.collapsingtoolbar.CollapsingToolbarBaseActivity
 import com.flamingo.support.preference.SystemSettingListPreference
 
@@ -53,27 +51,20 @@ class SettingsActivity : CollapsingToolbarBaseActivity() {
     class SettingsFragment : PreferenceFragmentCompat() {
         override fun onCreatePreferences(savedInstanceState: Bundle?, rootKey: String?) {
             setPreferencesFromResource(R.xml.fragment_settings, rootKey)
-            val modeEntries = arrayOf(
-                resources.getString(R.string.mode_normal),
-                resources.getString(R.string.mode_vibrate),
-                resources.getString(R.string.mode_priority),
-                resources.getString(R.string.mode_silent),
-                resources.getString(R.string.mode_dnd)
-            )
+            val modeEntries = Mode.values().map { resources.getString(it.title) }.toTypedArray()
             val modeEntryValues = Mode.values().map { it.toString() }.toTypedArray()
-            Positions.forEachIndexed { index, position ->
-                preferenceScreen.addPreference(
-                    SystemSettingListPreference(requireContext()).apply {
-                        key = position.modeKey
-                        title = resources.getString(position.title)
-                        entries = modeEntries
-                        entryValues = modeEntryValues
-                        setDefaultValue(position.defaultMode.toString())
-                        order = index
-                        dialogTitle = title
-                        summaryProvider = SimpleSummaryProvider.getInstance()
-                    }
-                )
+            Positions.map {
+                SystemSettingListPreference(requireContext()).apply {
+                    key = it.modeKey
+                    title = resources.getString(it.title)
+                    entries = modeEntries
+                    entryValues = modeEntryValues
+                    setDefaultValue(it.defaultMode.toString())
+                    dialogTitle = title
+                    summaryProvider = SimpleSummaryProvider.getInstance()
+                }
+            }.forEach {
+                preferenceScreen.addPreference(it)
             }
         }
     }

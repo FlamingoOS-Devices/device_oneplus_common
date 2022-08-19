@@ -23,6 +23,7 @@ import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
+import android.content.res.Configuration
 import android.media.AudioManager
 import android.media.AudioSystem
 import android.os.UEventObserver
@@ -38,20 +39,19 @@ import android.util.Log
 import androidx.lifecycle.LifecycleService
 import androidx.lifecycle.lifecycleScope
 
-import com.android.internal.os.AlertSlider.Mode
-import com.android.internal.os.AlertSlider.Position
-
 import java.io.File
 
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 class KeyHandler : LifecycleService() {
 
     private val audioManager by lazy { getSystemService(AudioManager::class.java) }
     private val notificationManager by lazy { getSystemService(NotificationManager::class.java) }
     private val vibrator by lazy { getSystemService(Vibrator::class.java) }
+    private val alertSliderController by lazy { AlertSliderController(this) }
 
     private val broadcastReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context, intent: Intent?) {
@@ -124,17 +124,17 @@ class KeyHandler : LifecycleService() {
         }
         lifecycleScope.launch(Dispatchers.IO) {
             if (restoring) {
-                handlePosition(sliderPosition, vibrate = false, broadcast = false)
+                handlePosition(sliderPosition, vibrate = false, showDialog = false)
             } else {
                 positionChangeChannel.send(sliderPosition)
             }
         }
     }
 
-    private fun handlePosition(
+    private suspend fun handlePosition(
         sliderPosition: AlertSliderPosition,
         vibrate: Boolean = true,
-        broadcast: Boolean = true
+        showDialog: Boolean = true
     ) {
         val savedMode = Settings.System.getStringForUser(
             contentResolver,
@@ -148,7 +148,7 @@ class KeyHandler : LifecycleService() {
             return
         }
         performSliderAction(mode, vibrate)
-        if (broadcast) sendSliderBroadcast(mode, sliderPosition.position)
+        if (showDialog) updateDialogAndShow(mode, sliderPosition)
     }
 
     private fun performSliderAction(mode: Mode, vibrate: Boolean) {
@@ -202,14 +202,16 @@ class KeyHandler : LifecycleService() {
         if (vibrator.hasVibrator()) vibrator.vibrate(effect)
     }
 
-    private fun sendSliderBroadcast(mode: Mode, position: Position) {
-        sendBroadcastAsUser(
-            Intent(Intent.ACTION_SLIDER_POSITION_CHANGED).apply {
-                putExtra(Intent.EXTRA_SLIDER_POSITION, position.toString())
-                putExtra(Intent.EXTRA_SLIDER_MODE, mode.toString())
-            },
-            UserHandle.SYSTEM
-        )
+    private suspend fun updateDialogAndShow(mode: Mode, position: AlertSliderPosition) {
+        withContext(Dispatchers.Main) {
+            alertSliderController.updateDialog(mode)
+            alertSliderController.showDialog(position)
+        }
+    }
+
+    override fun onConfigurationChanged(newConfig: Configuration) {
+        super.onConfigurationChanged(newConfig)
+        alertSliderController.updateConfiguration(newConfig)
     }
 
     override fun onDestroy() {
