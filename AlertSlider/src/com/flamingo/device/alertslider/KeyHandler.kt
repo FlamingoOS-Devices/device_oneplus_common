@@ -94,39 +94,48 @@ class KeyHandler : LifecycleService() {
             broadcastReceiver,
             IntentFilter(AudioManager.STREAM_MUTE_CHANGED_ACTION)
         )
-        alertSliderEventObserver.startObserving("tri-state-key")
-        alertSliderEventObserver.startObserving("tri_state_key")
         lifecycleScope.launch(Dispatchers.IO) {
             for (position in positionChangeChannel) {
                 handlePosition(position)
             }
         }
         lifecycleScope.launch(Dispatchers.IO) {
+            // Restore state
             File(SYSFS_EXTCON).walk().firstOrNull {
                 it.isDirectory && it.name.matches("extcon\\d+".toRegex())
             }?.let {
-                handleState(File(it, "state").readText())
+                handleState(File(it, "state").readText(), restoring = true)
+            }
+            // Observe uevents
+            alertSliderEventObserver.startObserving("tri-state-key")
+            alertSliderEventObserver.startObserving("tri_state_key")
+        }
+    }
+
+    private fun handleState(state: String, restoring: Boolean = false) {
+        val none = state.contains("USB=0")
+        val vibration = state.contains("HOST=0")
+        val silent = state.contains("null)=0")
+        val sliderPosition = when {
+            none && !vibration && !silent -> AlertSliderPosition.Bottom
+            vibration && !none && !silent -> AlertSliderPosition.Middle
+            silent && !none && !vibration -> AlertSliderPosition.Top
+            else -> return
+        }
+        lifecycleScope.launch(Dispatchers.IO) {
+            if (restoring) {
+                handlePosition(sliderPosition, vibrate = false, broadcast = false)
+            } else {
+                positionChangeChannel.send(sliderPosition)
             }
         }
     }
 
-    private fun handleState(state: String) {
-        lifecycleScope.launch {
-            val none = state.contains("USB=0")
-            val vibration = state.contains("HOST=0")
-            val silent = state.contains("null)=0")
-            positionChangeChannel.send(
-                when {
-                    none && !vibration && !silent -> AlertSliderPosition.Bottom
-                    vibration && !none && !silent -> AlertSliderPosition.Middle
-                    silent && !none && !vibration -> AlertSliderPosition.Top
-                    else -> return@launch
-                }
-            )
-        }
-    }
-
-    fun handlePosition(sliderPosition: AlertSliderPosition) {
+    private fun handlePosition(
+        sliderPosition: AlertSliderPosition,
+        vibrate: Boolean = true,
+        broadcast: Boolean = true
+    ) {
         val savedMode = Settings.System.getStringForUser(
             contentResolver,
             sliderPosition.modeKey,
@@ -138,11 +147,11 @@ class KeyHandler : LifecycleService() {
             Log.e(TAG, "Unrecognised mode $savedMode")
             return
         }
-        performSliderAction(mode)
-        sendSliderBroadcast(mode, sliderPosition.position)
+        performSliderAction(mode, vibrate)
+        if (broadcast) sendSliderBroadcast(mode, sliderPosition.position)
     }
 
-    private fun performSliderAction(mode: Mode) {
+    private fun performSliderAction(mode: Mode, vibrate: Boolean) {
         val muteMedia = Settings.System.getIntForUser(
             contentResolver,
             MUTE_MEDIA_WITH_SILENT,
@@ -153,7 +162,7 @@ class KeyHandler : LifecycleService() {
             Mode.NORMAL -> {
                 audioManager.ringerModeInternal = AudioManager.RINGER_MODE_NORMAL
                 notificationManager.setZenMode(ZEN_MODE_OFF, null, TAG)
-                performHapticFeedback(HEAVY_CLICK_EFFECT)
+                if (vibrate) performHapticFeedback(HEAVY_CLICK_EFFECT)
                 if (muteMedia && wasMuted) {
                     audioManager.adjustVolume(AudioManager.ADJUST_UNMUTE, 0)
                 }
@@ -161,7 +170,7 @@ class KeyHandler : LifecycleService() {
             Mode.PRIORITY -> {
                 audioManager.ringerModeInternal = AudioManager.RINGER_MODE_NORMAL
                 notificationManager.setZenMode(ZEN_MODE_IMPORTANT_INTERRUPTIONS, null, TAG)
-                performHapticFeedback(HEAVY_CLICK_EFFECT)
+                if (vibrate) performHapticFeedback(HEAVY_CLICK_EFFECT)
                 if (muteMedia && wasMuted) {
                     audioManager.adjustVolume(AudioManager.ADJUST_UNMUTE, 0)
                 }
@@ -169,7 +178,7 @@ class KeyHandler : LifecycleService() {
             Mode.VIBRATE -> {
                 audioManager.ringerModeInternal = AudioManager.RINGER_MODE_VIBRATE
                 notificationManager.setZenMode(ZEN_MODE_OFF, null, TAG)
-                performHapticFeedback(DOUBLE_CLICK_EFFECT)
+                if (vibrate) performHapticFeedback(DOUBLE_CLICK_EFFECT)
                 if (muteMedia && wasMuted) {
                     audioManager.adjustVolume(AudioManager.ADJUST_UNMUTE, 0)
                 }
