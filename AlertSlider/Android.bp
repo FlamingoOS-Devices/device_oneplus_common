@@ -15,6 +15,7 @@ android_app {
         "androidx.lifecycle_lifecycle-runtime-ktx",
         "androidx.lifecycle_lifecycle-service",
         "androidx.preference_preference",
+        "kotlinx_coroutines_android",
         "vendor_support",
     ],
     optimize: {
