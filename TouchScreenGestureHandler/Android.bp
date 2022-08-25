@@ -26,6 +26,7 @@ android_app {
         "androidx.preference_preference",
         "androidx.lifecycle_lifecycle-runtime-ktx",
         "androidx.lifecycle_lifecycle-service",
+        "kotlinx_coroutines_android",
         "vendor_support",
     ],
     required: [
