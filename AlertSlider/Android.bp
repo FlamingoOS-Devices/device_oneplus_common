@@ -5,6 +5,7 @@ android_app {
     certificate: "platform",
     platform_apis: true,
     system_ext_specific: true,
+    privileged: true,
     defaults: [
         "SettingsLibDefaults",
     ],
@@ -23,6 +24,7 @@ android_app {
     },
     required: [
         "tri-state-key-calibrate",
+        "privapp_whitelist_com.flamingo.device.alertslider",
     ],
 }
 
@@ -31,4 +33,12 @@ sh_binary {
     init_rc: ["tri-state-key-calibrate.rc"],
     src: "tri-state-key-calibrate.sh",
     vendor: true,
+}
+
+prebuilt_etc {
+    name: "privapp_whitelist_com.flamingo.device.alertslider",
+    sub_dir: "permissions",
+    src: "privapp-permissions-alertslider.xml",
+    filename_from_src: true,
+    system_ext_specific: true,
 }

@@ -19,6 +19,7 @@
           android:sharedUserId="android.uid.system"
           package="com.flamingo.device.alertslider">
 
+    <uses-permission android:name="android.permission.INTERACT_ACROSS_USERS" />
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
     <uses-permission android:name="android.permission.VIBRATE" />
 

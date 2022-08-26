@@ -20,6 +20,7 @@ package com.flamingo.device.alertslider
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
+import android.os.UserHandle
 import android.util.Log
 
 private const val TAG = "AlertSlider/BootCompletedReceiver"
@@ -28,6 +29,6 @@ class BootCompletedReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent?) {
         if (intent?.action != Intent.ACTION_LOCKED_BOOT_COMPLETED) return
         Log.i(TAG, "Starting")
-        context.startService(Intent(context, KeyHandler::class.java))
+        context.startServiceAsUser(Intent(context, KeyHandler::class.java), UserHandle.SYSTEM)
     }
 }
