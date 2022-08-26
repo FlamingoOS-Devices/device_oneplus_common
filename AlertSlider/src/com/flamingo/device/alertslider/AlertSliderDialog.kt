@@ -69,13 +69,15 @@ class AlertSliderDialog(baseContext: Context) {
     private var layoutParams = LayoutParams(
         LayoutParams.WRAP_CONTENT /** width */,
         LayoutParams.WRAP_CONTENT /** height */,
-        LayoutParams.TYPE_DISPLAY_OVERLAY /** type */,
+        LayoutParams.TYPE_SECURE_SYSTEM_OVERLAY /** type */,
         LayoutParams.FLAG_NOT_FOCUSABLE or
             LayoutParams.FLAG_NOT_TOUCH_MODAL or
             LayoutParams.FLAG_NOT_TOUCHABLE or
             LayoutParams.FLAG_HARDWARE_ACCELERATED /** flags */,
         PixelFormat.TRANSLUCENT /** format */
-    )
+    ).apply {
+        privateFlags = privateFlags or LayoutParams.SYSTEM_FLAG_SHOW_FOR_ALL_USERS
+    }
 
     init {
         context.resources.let {
