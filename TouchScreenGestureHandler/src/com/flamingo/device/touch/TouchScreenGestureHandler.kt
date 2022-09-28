@@ -21,6 +21,7 @@ import android.app.KeyguardManager
 import android.content.ActivityNotFoundException
 import android.content.Intent
 import android.content.pm.PackageManager
+import android.content.pm.PackageManager.ResolveInfoFlags
 import android.media.AudioManager
 import android.media.session.MediaSessionLegacyHelper
 import android.net.Uri
@@ -278,7 +279,10 @@ class TouchScreenGestureHandler : LifecycleService() {
     }
 
     private fun getLaunchableIntent(intent: Intent): Intent? {
-        val resInfo = packageManager.queryIntentActivities(intent, PackageManager.MATCH_ALL)
+        val resInfo = packageManager.queryIntentActivities(
+            intent,
+            ResolveInfoFlags.of(PackageManager.MATCH_ALL.toLong())
+        )
         if (resInfo.isEmpty()) {
             return null
         }

@@ -92,4 +92,4 @@ private const val KEY_PREFIX = "ts_gesture_"
 private val ReplaceRegex = "\\s+".toRegex()
 
 val TouchscreenGesture.settingKey: String
-    get() = KEY_PREFIX + name.toLowerCase().replace(ReplaceRegex, "_")
+    get() = KEY_PREFIX + name.lowercase().replace(ReplaceRegex, "_")
